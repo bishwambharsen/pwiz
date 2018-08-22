@@ -304,7 +304,19 @@ namespace pwiz.Skyline.Model.Databinding
         {
             if (_batchChangesOriginalDocument == null)
             {
-                SkylineWindow.ModifyDocument(editDescription.GetUndoText(DataSchemaLocalizer), action);
+                if (SkylineWindow != null)
+                {
+                    SkylineWindow.ModifyDocument(editDescription.GetUndoText(DataSchemaLocalizer), action);
+                }
+                else
+                {
+                    var doc = _documentContainer.Document;
+                    if (!_documentContainer.SetDocument(action(doc), doc))
+                    {
+                        throw new InvalidOperationException(Resources
+                            .SkylineDataSchema_VerifyDocumentCurrent_The_document_was_modified_in_the_middle_of_the_operation_);
+                    }
+                }
                 return;
             }
             VerifyDocumentCurrent(_batchChangesOriginalDocument, _documentContainer.Document);
