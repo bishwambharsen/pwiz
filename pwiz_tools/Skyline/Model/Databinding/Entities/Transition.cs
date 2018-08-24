@@ -176,6 +176,7 @@ namespace pwiz.Skyline.Model.Databinding.Entities
             }
         }
 
+        [Importable]
         public bool Quantitative
         {
             get { return DocNode.Quantitative; }

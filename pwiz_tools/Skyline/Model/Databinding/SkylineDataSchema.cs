@@ -35,7 +35,6 @@ using pwiz.Skyline.Model.ElementLocators;
 using pwiz.Skyline.Model.GroupComparison;
 using pwiz.Skyline.Properties;
 using pwiz.Skyline.Util;
-using pwiz.Skyline.Util.Extensions;
 using SkylineTool;
 
 namespace pwiz.Skyline.Model.Databinding
@@ -296,7 +295,20 @@ namespace pwiz.Skyline.Model.Databinding
                     });
                     return newDocument;
                 }
-            }, docPair =>
+            }, GetAuditLogFunction(batchModifyInfo));
+            _batchChangesOriginalDocument = null;
+            _batchEditDescriptions = null;
+            DocumentChangedEventHandler(_documentContainer, new DocumentChangedEventArgs(_document));
+        }
+
+        private Func<SrmDocumentPair, AuditLogEntry> GetAuditLogFunction(
+            DataGridViewPasteHandler.BatchModifyInfo batchModifyInfo)
+        {
+            if (batchModifyInfo == null)
+            {
+                return null;
+            }
+            return docPair =>
             {
                 MessageType singular, plural;
                 var detailType = MessageType.set_to_in_document_grid;
@@ -316,7 +328,8 @@ namespace pwiz.Skyline.Model.Databinding
                         singular = MessageType.cleared_document_grid_single;
                         plural = MessageType.cleared_document_grid;
                         detailType = MessageType.cleared_cell_in_document_grid;
-                        getArgsFunc = descr => new[] { (object)descr.ColumnCaption.GetCaption(DataSchemaLocalizer), descr.ElementRefName };
+                        getArgsFunc = descr => new[]
+                            {(object) descr.ColumnCaption.GetCaption(DataSchemaLocalizer), descr.ElementRefName};
                         break;
                     case DataGridViewPasteHandler.BatchModifyAction.FillDown:
                         singular = MessageType.fill_down_document_grid_single;
@@ -335,10 +348,7 @@ namespace pwiz.Skyline.Model.Databinding
 
                 return entry.AppendAllInfo(_batchEditDescriptions.Select(descr => new MessageInfo(detailType,
                     getArgsFunc(descr))).ToList());
-            });
-            _batchChangesOriginalDocument = null;
-            _batchEditDescriptions = null;
-            DocumentChangedEventHandler(_documentContainer, new DocumentChangedEventArgs(_document));
+            };
         }
 
         public void RollbackBatchModifyDocument()
@@ -416,6 +426,13 @@ namespace pwiz.Skyline.Model.Databinding
                             chromFileInfo => new ResultFile(replicate, chromFileInfo.FileId, 0)))
                 .ToDictionary(resultFile => new ResultFileKey(resultFile.Replicate.ReplicateIndex,
                     resultFile.ChromFileInfoId, resultFile.OptimizationStep));
+        }
+
+        public static SkylineDataSchema MemoryDataSchema(SrmDocument document, DataSchemaLocalizer localizer)
+        {
+            var documentContainer = new MemoryDocumentContainer();
+            documentContainer.SetDocument(document, documentContainer.Document);
+            return new SkylineDataSchema(documentContainer, localizer);
         }
     }
 }

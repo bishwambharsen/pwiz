@@ -162,6 +162,7 @@ namespace pwiz.Skyline.Model.Databinding.Entities
 
 
         [InvariantDisplayName("PrecursorReplicateNote")]
+        [Importable]
         public string Note 
         { 
             get { return ChromInfo.Annotations.Note; } 
