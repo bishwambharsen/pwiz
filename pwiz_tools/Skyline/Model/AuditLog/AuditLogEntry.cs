@@ -671,10 +671,13 @@ namespace pwiz.Skyline.Model.AuditLog
                     newDoc = d.ChangeAuditLog(ImmutableList.ValueOf(newEntries));
                 }
 
-                if (OnAuditLogEntryAdded != null)
-                    OnAuditLogEntryAdded(this, new AuditLogEntryAddedEventArgs(this));
                 return newDoc;
             });
+
+            // The call to modify document above may loop multiple times, if an other
+            // thread changes the document. Only log once when the operation is complete.
+            if (OnAuditLogEntryAdded != null)
+                OnAuditLogEntryAdded(this, new AuditLogEntryAddedEventArgs(this));
         }
 
         // For testing
@@ -892,7 +895,7 @@ namespace pwiz.Skyline.Model.AuditLog
     /// them
     /// </summary>
     /// <typeparam name="T">Type of the settings object</typeparam>
-    public interface IAuditLogModifier<T> where T : AuditLogOperationSettings<T>
+    public interface IAuditLogModifier<out T> where T : AuditLogOperationSettings<T>
     {
         T FormSettings { get; }
     }     
