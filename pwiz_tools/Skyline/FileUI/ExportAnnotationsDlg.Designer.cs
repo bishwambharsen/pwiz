@@ -153,6 +153,7 @@
             // 
             // cbxRemoveBlankRows
             // 
+            this.cbxRemoveBlankRows.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.cbxRemoveBlankRows.AutoSize = true;
             this.cbxRemoveBlankRows.Location = new System.Drawing.Point(4, 448);
             this.cbxRemoveBlankRows.Name = "cbxRemoveBlankRows";

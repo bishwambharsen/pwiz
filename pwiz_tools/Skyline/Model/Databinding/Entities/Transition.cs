@@ -187,6 +187,7 @@ namespace pwiz.Skyline.Model.Databinding.Entities
             }
         }
         [InvariantDisplayName("TransitionNote")]
+        [Importable]
         public string Note
         {
             get { return DocNode.Note; }

@@ -19,7 +19,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -47,12 +46,12 @@ namespace pwiz.Skyline.Model.ElementLocators.ExportAnnotations
         public const string ANNOTATION_PREFIX = "annotation_";
         public const string PROPERTY_PREFIX = "property_";
 
-        private IDictionary<string, ElementHandlers.ElementHandler> _elementHandlers;
+        private IDictionary<string, ElementHandler> _elementHandlers;
         // ReSharper restore NonLocalizedString
         public DocumentAnnotations(SkylineDataSchema skylineDataSchema)
         {
             DataSchema = skylineDataSchema;
-            _elementHandlers = ElementHandlers.GetElementHandlers(DataSchema).ToDictionary(handler => handler.Name);
+            _elementHandlers = ElementHandler.GetElementHandlers(DataSchema).ToDictionary(handler => handler.Name);
         }
 
         public DocumentAnnotations(SrmDocument document) : this (SkylineDataSchema.MemoryDataSchema(document, DataSchemaLocalizer.INVARIANT))
@@ -86,7 +85,7 @@ namespace pwiz.Skyline.Model.ElementLocators.ExportAnnotations
                 foreach (var skylineObject in handler.ListElements())
                 {
                     var values = GetRowValues(settings, handler, skylineObject).ToArray();
-                    if (settings.RemoveBlankRows && values.All(value => ReferenceEquals(null, value)))
+                    if (settings.RemoveBlankRows && values.All(string.IsNullOrEmpty))
                     {
                         continue;
                     }
@@ -160,7 +159,7 @@ namespace pwiz.Skyline.Model.ElementLocators.ExportAnnotations
                 cancellationToken.ThrowIfCancellationRequested();
                 ElementLocator elementLocator = ElementLocator.Parse(row[locatorColumnIndex]);
                 var elementRef = ElementRefs.FromObjectReference(elementLocator);
-                ElementHandlers.ElementHandler handler;
+                ElementHandler handler;
                 if (!_elementHandlers.TryGetValue(elementRef.ElementType, out handler))
                 {
                     throw ElementNotSupportedException(elementRef);
@@ -177,26 +176,26 @@ namespace pwiz.Skyline.Model.ElementLocators.ExportAnnotations
                         continue;
                     }
                     string fieldName = fieldNames[icol];
-                    PropertyDescriptor propertyDescriptor = null;
+                    ImportablePropertyInfo propertyInfo = null;
                     AnnotationDef annotationDef = null;
                     if (fieldName.StartsWith(PROPERTY_PREFIX))
                     {
-                        propertyDescriptor = handler.FindProperty(fieldName.Substring(PROPERTY_PREFIX.Length));
+                        propertyInfo = handler.FindProperty(fieldName.Substring(PROPERTY_PREFIX.Length));
                     }
                     else if (fieldName.StartsWith(ANNOTATION_PREFIX))
                     {
                         annotationDef = handler.FindAnnotation(fieldName.Substring(ANNOTATION_PREFIX.Length));
                     }
-                    if (propertyDescriptor == null && annotationDef == null)
+                    if (propertyInfo == null && annotationDef == null)
                     {
-                        propertyDescriptor = handler.FindProperty(fieldName);
-                        if (propertyDescriptor == null)
+                        propertyInfo = handler.FindProperty(fieldName);
+                        if (propertyInfo == null)
                         {
                             annotationDef = handler.FindAnnotation(fieldName);
                         }
                     }
                     string fieldValue = row[icol];
-                    if (propertyDescriptor == null && annotationDef == null)
+                    if (propertyInfo == null && annotationDef == null)
                     {
                         if (string.IsNullOrEmpty(fieldValue))
                         {
@@ -205,10 +204,10 @@ namespace pwiz.Skyline.Model.ElementLocators.ExportAnnotations
                         throw AnnotationDoesNotApplyException(fieldName, elementRef);
                     }
                     
-                    if (propertyDescriptor != null)
+                    if (propertyInfo != null)
                     {
-                        object value = ParseValue(fieldValue, propertyDescriptor.PropertyType);
-                        propertyDescriptor.SetValue(element, value);
+                        object value = propertyInfo.ParsePropertyValue(CultureInfo, fieldValue);
+                        propertyInfo.PropertyDescriptor.SetValue(element, value);
                     }
                     if (annotationDef != null)
                     {
@@ -235,11 +234,6 @@ namespace pwiz.Skyline.Model.ElementLocators.ExportAnnotations
                 name, elementRef));
         }
 
-        private static Exception AnnotationsNotSupported(ElementRef elementRef)
-        {
-            throw new InvalidOperationException(String.Format(Resources.DocumentAnnotations_AnnotationsNotSupported_The_element___0___cannot_have_annotations_, elementRef));
-        }
-
         public IEnumerable<string> GetColumnHeaders(ExportAnnotationSettings settings)
         {
             return new[] {COLUMN_LOCATOR}
@@ -255,8 +249,8 @@ namespace pwiz.Skyline.Model.ElementLocators.ExportAnnotations
             writer.WriteLine(row);
         }
 
-        private IEnumerable<object> GetRowValues(ExportAnnotationSettings settings,
-            ElementHandlers.ElementHandler elementHandler, SkylineObject skylineObject)
+        private IEnumerable<string> GetRowValues(ExportAnnotationSettings settings,
+            ElementHandler elementHandler, SkylineObject skylineObject)
         {
             foreach (var annotation in settings.AnnotationNames)
             {
@@ -267,23 +261,35 @@ namespace pwiz.Skyline.Model.ElementLocators.ExportAnnotations
                 }
                 else
                 {
-                    yield return GetAnnotationValue(skylineObject, annotationDef);
+                    yield return FormatAnnotationValue(skylineObject, annotationDef);
+                }
+            }
+            foreach (var property in settings.PropertyNames)
+            {
+                var propertyInfo = elementHandler.FindProperty(property);
+                if (propertyInfo == null)
+                {
+                    yield return null;
+                }
+                else
+                {
+                    yield return propertyInfo.FormatPropertyValue(CultureInfo, propertyInfo.PropertyDescriptor.GetValue(skylineObject));
                 }
             }
         }
 
-        private object GetAnnotationValue(SkylineObject skylineObject, AnnotationDef annotationDef)
+        private string FormatAnnotationValue(SkylineObject skylineObject, AnnotationDef annotationDef)
         {
-            if (annotationDef == null)
-            {
-                return null;
-            }
             var value = skylineObject.GetAnnotation(annotationDef);
-            if (true.Equals(value))
+            if (value == null || false.Equals(value))
             {
-                return null;
+                return string.Empty;
             }
-            return value;
+            if (value is double d)
+            {
+                return d.ToString(Formats.RoundTrip, CultureInfo);
+            }
+            return value.ToString();
         }
 
         private void SetAnnotationValue(SkylineObject skylineObject, AnnotationDef annotationDef, string strValue)

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 
 namespace pwiz.Skyline.Model.Databinding
 {
@@ -7,5 +8,11 @@ namespace pwiz.Skyline.Model.Databinding
     /// </summary>
     public class ImportableAttribute : Attribute
     {
+        public Type Formatter { get; set; }
+    }
+    public interface IPropertyFormatter
+    {
+        object ParseValue(CultureInfo cultureInfo, string text);
+        string FormatValue(CultureInfo cultureInfo, object value);
     }
 }

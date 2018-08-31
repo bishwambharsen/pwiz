@@ -24,7 +24,7 @@ namespace pwiz.Skyline.FileUI
         {
             InitializeComponent();
             DataSchema = dataSchema;
-            Handlers = ImmutableList.ValueOf(ElementHandlers.GetElementHandlers(dataSchema));
+            Handlers = ImmutableList.ValueOf(ElementHandler.GetElementHandlers(dataSchema));
             _inUpdate = true;
             foreach (var handler in Handlers)
             {
@@ -37,9 +37,9 @@ namespace pwiz.Skyline.FileUI
             SelectAll(listBoxProperties);
         }
         public SkylineDataSchema DataSchema { get; private set; }
-        public ImmutableList<ElementHandlers.ElementHandler> Handlers { get; private set; }
+        public ImmutableList<ElementHandler> Handlers { get; private set; }
         public SrmDocument Document { get { return DataSchema.Document; } }
-        public IEnumerable<ElementHandlers.ElementHandler> SelectedHandlers
+        public IEnumerable<ElementHandler> SelectedHandlers
         {
             get
             {
@@ -117,7 +117,7 @@ namespace pwiz.Skyline.FileUI
         {
             var selectedProperties = ImmutableList.ValueOf(SelectedProperties);
             var newProperties = SelectedHandlers
-                .SelectMany(handler => handler.Properties.Select(pd => pd.Name)).Distinct()
+                .SelectMany(handler => handler.Properties.Select(pd => pd.PropertyDescriptor.Name)).Distinct()
                 .OrderBy(name => name).ToArray();
             if (newProperties.SequenceEqual(listBoxProperties.Items.OfType<string>()))
             {
@@ -180,7 +180,7 @@ namespace pwiz.Skyline.FileUI
                 strSaveFileName = Path.GetFileNameWithoutExtension(documentFilePath);
             }
             strSaveFileName += "Annotations.csv"; // Not L10N
-
+            bool success;
             using (var dlg = new SaveFileDialog
             {
                 FileName = strSaveFileName,
@@ -194,14 +194,18 @@ namespace pwiz.Skyline.FileUI
                 {
                     return;
                 }
-                ExportAnnotations(dlg.FileName);
+                success = ExportAnnotations(dlg.FileName);
             }
-            DialogResult = DialogResult.OK;
+            if (success)
+            {
+                DialogResult = DialogResult.OK;
+            }
         }
 
-        public void ExportAnnotations(string filename)
+        public bool ExportAnnotations(string filename)
         {
-            var settings = GetExportAnnotationSettings(); 
+            var settings = GetExportAnnotationSettings();
+            bool success = false;
             try
             {
                 var documentAnnotations = new DocumentAnnotations(Document);
@@ -214,13 +218,16 @@ namespace pwiz.Skyline.FileUI
                             documentAnnotations.WriteAnnotationsToFile(broker.CancellationToken, settings, fileSaver.SafeName);
                             fileSaver.Commit();
                         }
+                        success = true;
                     });
                 }
             }
             catch (Exception e)
             {
                 MessageDlg.ShowException(this, e);
+                return false;
             }
+            return success;
         }
 
     }

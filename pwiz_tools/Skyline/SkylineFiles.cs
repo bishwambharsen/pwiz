@@ -3195,8 +3195,6 @@ namespace pwiz.Skyline
                 {
                     var originalDocument = Document;
                     SrmDocument newDocument = null;
-                    var documentContainer = new MemoryDocumentContainer();
-                    documentContainer.SetDocument(Document, documentContainer.Document);
                     using (var longWaitDlg = new LongWaitDlg(this))
                     {
                         longWaitDlg.PerformWork(this, 1000, broker =>
@@ -3214,7 +3212,7 @@ namespace pwiz.Skyline
                                 throw new ApplicationException(Resources
                                     .SkylineDataSchema_VerifyDocumentCurrent_The_document_was_modified_in_the_middle_of_the_operation_);
                             }
-                            return documentContainer.Document;
+                            return newDocument;
                         }, docPair => AuditLogEntry.CreateSingleMessageEntry(docPair.OldDoc,
                             new MessageInfo(MessageType.imported_annotations, filename)));
                     }

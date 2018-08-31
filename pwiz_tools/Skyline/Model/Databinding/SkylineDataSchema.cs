@@ -278,24 +278,39 @@ namespace pwiz.Skyline.Model.Databinding
                 throw new InvalidOperationException();
             }
             string message = Resources.DataGridViewPasteHandler_EndDeferSettingsChangesOnDocument_Updating_settings;
-            SkylineWindow.ModifyDocument(description, document =>
+            if (SkylineWindow != null)
             {
-                VerifyDocumentCurrent(_batchChangesOriginalDocument, document);
-                using (var longWaitDlg = new LongWaitDlg
+                SkylineWindow.ModifyDocument(description, document =>
                 {
-                    Message = message
-                })
-                {
-                    SrmDocument newDocument = null;
-                    longWaitDlg.PerformWork(SkylineWindow, 1000, progressMonitor =>
+                    VerifyDocumentCurrent(_batchChangesOriginalDocument, document);
+                    using (var longWaitDlg = new LongWaitDlg
                     {
-                        var srmSettingsChangeMonitor = new SrmSettingsChangeMonitor(progressMonitor,
-                            message);
-                        newDocument = _document.EndDeferSettingsChanges(_batchChangesOriginalDocument.Settings, srmSettingsChangeMonitor);
-                    });
-                    return newDocument;
+                        Message = message
+                    })
+                    {
+                        SrmDocument newDocument = null;
+                        longWaitDlg.PerformWork(SkylineWindow, 1000, progressMonitor =>
+                        {
+                            var srmSettingsChangeMonitor = new SrmSettingsChangeMonitor(progressMonitor,
+                                message);
+                            newDocument = _document.EndDeferSettingsChanges(_batchChangesOriginalDocument.Settings,
+                                srmSettingsChangeMonitor);
+                        });
+                        return newDocument;
+                    }
+                }, GetAuditLogFunction(batchModifyInfo));
+            }
+            else
+            {
+                VerifyDocumentCurrent(_batchChangesOriginalDocument, _documentContainer.Document);
+                if (!_documentContainer.SetDocument(
+                    _document.EndDeferSettingsChanges(_batchChangesOriginalDocument.Settings, null),
+                    _batchChangesOriginalDocument))
+                {
+                    throw new InvalidOperationException(Resources
+                        .SkylineDataSchema_VerifyDocumentCurrent_The_document_was_modified_in_the_middle_of_the_operation_);
                 }
-            }, GetAuditLogFunction(batchModifyInfo));
+            }
             _batchChangesOriginalDocument = null;
             _batchEditDescriptions = null;
             DocumentChangedEventHandler(_documentContainer, new DocumentChangedEventArgs(_document));

@@ -51,7 +51,8 @@ namespace pwiz.SkylineTestFunctional
             var annotationAdder = new AnnotationAdder();
             Assert.IsTrue(SkylineWindow.SetDocument(annotationAdder.DefineTestAnnotations(SkylineWindow.Document), SkylineWindow.Document));
             var annotatedDocument = annotationAdder.AddAnnotationTestValues(SkylineWindow.Document);
-            var annotationSettings = ExportAnnotationSettings.AllAnnotations(annotatedDocument);
+            var annotationSettings = ExportAnnotationSettings.AllAnnotations(annotatedDocument)
+                .ChangeRemoveBlankRows(true);
 
             var documentAnnotations = new DocumentAnnotations(annotatedDocument);
             string annotationPath = TestFilesDir.GetTestPath("annotations.csv");

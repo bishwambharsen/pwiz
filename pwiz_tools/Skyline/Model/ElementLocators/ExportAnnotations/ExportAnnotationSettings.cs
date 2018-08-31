@@ -18,7 +18,7 @@ namespace pwiz.Skyline.Model.ElementLocators.ExportAnnotations
 
         public static ExportAnnotationSettings AllAnnotations(SrmDocument document)
         {
-            return EMPTY.ChangeElementTypes(ElementHandlers
+            return EMPTY.ChangeElementTypes(ElementHandler
                     .GetElementHandlers(SkylineDataSchema.MemoryDataSchema(document, DataSchemaLocalizer.INVARIANT))
                     .Select(handler => handler.Name))
                 .ChangeAnnotationNames(
