@@ -293,7 +293,7 @@ namespace pwiz.Skyline.Model.Databinding
                         {
                             var srmSettingsChangeMonitor = new SrmSettingsChangeMonitor(progressMonitor,
                                 message);
-                            newDocument = _document.EndDeferSettingsChanges(_batchChangesOriginalDocument.Settings,
+                            newDocument = _document.EndDeferSettingsChanges(_batchChangesOriginalDocument,
                                 srmSettingsChangeMonitor);
                         });
                         return newDocument;
@@ -304,7 +304,7 @@ namespace pwiz.Skyline.Model.Databinding
             {
                 VerifyDocumentCurrent(_batchChangesOriginalDocument, _documentContainer.Document);
                 if (!_documentContainer.SetDocument(
-                    _document.EndDeferSettingsChanges(_batchChangesOriginalDocument.Settings, null),
+                    _document.EndDeferSettingsChanges(_batchChangesOriginalDocument, null),
                     _batchChangesOriginalDocument))
                 {
                     throw new InvalidOperationException(Resources

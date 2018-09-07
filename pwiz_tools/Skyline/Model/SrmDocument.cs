@@ -1944,17 +1944,17 @@ namespace pwiz.Skyline.Model
             return ChangeProp(ImClone(this), im => im.DeferSettingsChanges = true);
         }
 
-        public SrmDocument EndDeferSettingsChanges(SrmSettings originalSettings, SrmSettingsChangeMonitor progressMonitor)
+        public SrmDocument EndDeferSettingsChanges(SrmDocument originalDocument, SrmSettingsChangeMonitor progressMonitor)
         {
-            var docWithOriginalSettings = ChangeProp(ImClone(this), im =>
+            var docWithOriginalSettings = (SrmDocument) ChangeProp(ImClone(this), im =>
             {
-                im.Settings = originalSettings;
+                im.Settings = originalDocument.Settings;
                 im.DeferSettingsChanges = false;
-            });
+            }).ChangeChildren(originalDocument.Children);
             var doc = docWithOriginalSettings
                 .ChangeSettings(Settings, progressMonitor)
                 .ChangeMeasuredResults(Settings.MeasuredResults, progressMonitor);
-            doc = (SrmDocument) doc.ChangeChildren(doc.Children.ToArray());
+            doc = (SrmDocument) doc.ChangeChildren(Children.ToArray());
             return doc;
         }
 
